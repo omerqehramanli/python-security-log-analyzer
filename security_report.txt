@@ -1,0 +1,38 @@
+SECURITY REPORT
+====================
+Most Failed IP: 192.168.1.20
+Failed Attempts: 5
+Total Failed Attempts: 8
+Brute-Force Alerts: 4
+
+Suspicious IPs:
+192.168.1.20 -> 4 brute-force alerts
+
+IP ANALYSIS:
+
+192.168.1.20
+    Status: PRIVATE
+    Failed Attempts: 5
+    Risk: HIGH
+    Decision: BLOCK
+
+192.168.56.234
+    Status: PRIVATE
+    Failed Attempts: 1
+    Risk: LOW
+    Decision: ALLOW
+
+192.168.112.83
+    Status: PRIVATE
+    Failed Attempts: 1
+    Risk: LOW
+    Decision: ALLOW
+
+192.168.223.222
+    Status: PRIVATE
+    Failed Attempts: 1
+    Risk: LOW
+    Decision: ALLOW
+
+BLOCKED IPS:
+192.168.1.20 -> BLOCKED
