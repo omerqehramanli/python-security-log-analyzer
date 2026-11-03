@@ -20,8 +20,8 @@ Built as a Blue Team learning project: the goal is to do by hand what a SIEM rul
 Requires Python 3.8+ and nothing else.
 
 ```bash
-git clone https://github.com/<your-username>/<repo-name>.git
-cd <repo-name>
+git clone https://github.com/omerqahramli/python-security-log-analyzer.git
+cd python-security-log-analyzer
 
 # custom log format
 python main.py sample_logs/security.log
@@ -139,4 +139,4 @@ python -m unittest -v
 
 ## What I learned
 
-Turning a simple counter into a sliding-window detection, thinking about false positives (a user mistyping a password twice is not an attack), and writing tests for edge cases such as empty logs and out-of-order events.
+Building this project helped me understand how security log analysis works in practice. I learned how to detect brute-force attacks using a sliding time window, classify IP addresses, assign risk levels, and generate actionable security reports. I also learned the importance of unit testing, handling edge cases, and thinking about false positives when designing detection logic.
