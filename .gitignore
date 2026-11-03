@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+.vscode/
+.idea/
+# reports generated in the project root when you run the tool
+/security_report.txt
+/security_report.json

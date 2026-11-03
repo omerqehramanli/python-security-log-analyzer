@@ -1,160 +1,101 @@
-import ipaddress
-from datetime import datetime, timedelta
+"""Command-line interface for the Security Log Analyzer.
 
-with open("security.log") as file:
-    failed_count = 0
-    failed_ips = {}
-    last_seen = {}
-    bruteforce_alerts = 0
-    bruteforce_ips = {}
-    blocked_ips = []
+Examples:
+    python main.py                                  # analyze ./security.log
+    python main.py sample_logs/security.log
+    python main.py sample_logs/auth.log --year 2026 # OpenSSH auth.log
+    python main.py auth.log --threshold 10 --window 10 --json report.json
+"""
 
-    for line in file:
-        if "FAILED" in line:
-            failed_count +=1
+from __future__ import annotations
 
-            a=line.split()
-            timestamp = a[0] + " " + a[1]
-            log_time = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Optional, Sequence
 
-            ip=(a[6])
-            if ip in last_seen:
-                previous_time = last_seen[ip]
-                time_difference = log_time - previous_time
-           
-                if time_difference <= timedelta(minutes=5):
-                    print(f"BRUTE-FORCE ALERT: {ip} - {time_difference}")
-                    bruteforce_alerts += 1
-
-                    if ip in bruteforce_ips:
-                        bruteforce_ips[ip] += 1
-                    else:
-                        bruteforce_ips[ip] = 1
-
-            last_seen[ip] = log_time
-            
-
-            ip_obj = ipaddress.ip_address(ip)
+from log_analyzer import (
+    DEFAULT_HIGH,
+    DEFAULT_MEDIUM,
+    DEFAULT_THRESHOLD,
+    DEFAULT_WINDOW_MINUTES,
+    analyze,
+    render_text,
+    to_dict,
+)
 
 
-            if ip in failed_ips:
-                failed_ips[ip] += 1
-            else:
-                failed_ips[ip]=1
-
-     
-
-    print("\n========== SECURITY REPORT ==========")
-    most_failed_ip = max(failed_ips, key=failed_ips.get)
-
-    print(f"Most Failed IP: {most_failed_ip}")
-    print(f"Failed Attempts: {failed_ips[most_failed_ip]}")
-
-    print(f"Total Failed Attempts: {failed_count}")
-    print(f"Brute-Force Alerts: {bruteforce_alerts}")
-
-    print("\nSuspicious IPs:")
-
-    for ip, count in bruteforce_ips.items():
-        print(f"{ip} -> {count} brute-force alerts")
-
-    
-
-    print("\nIP ANALYSIS:")
-
-    for ip, count in failed_ips.items():
-        ip_obj = ipaddress.ip_address(ip)
-
-        if ip_obj.is_private:
-            status = "PRIVATE"
-        else:
-            status = "PUBLIC"
-
-        if count >= 5:
-            risk = "HIGH"
-        elif count >= 3:
-            risk = "MEDIUM"
-        else:
-            risk = "LOW"
-
-        if risk == "HIGH":
-            decision = "BLOCK"
-        elif risk == "MEDIUM":
-            decision = "INVESTIGATE"
-        else:
-            decision = "ALLOW"
-
-        if decision == "BLOCK":
-            blocked_ips.append(ip)
-
-        print(f"{ip}")
-        print(f"    Status: {status}")
-        print(f"    Failed Attempts: {count}")
-        print(f"    Risk: {risk}")
-        print(f"    Decision: {decision}")
-        
-
-    if blocked_ips:
-        for ip in blocked_ips:
-            print(f"{ip} -> BLOCKED")
-    else:
-        print("No IPs blocked")
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Detect failed logins and brute-force activity in authentication logs."
+    )
+    parser.add_argument(
+        "logfile", nargs="?", default="security.log", help="log file to analyze (default: security.log)"
+    )
+    parser.add_argument(
+        "--threshold", type=int, default=DEFAULT_THRESHOLD,
+        help=f"failed logins that count as a brute-force burst (default: {DEFAULT_THRESHOLD})",
+    )
+    parser.add_argument(
+        "--window", type=int, default=DEFAULT_WINDOW_MINUTES,
+        help=f"time window in minutes for the burst rule (default: {DEFAULT_WINDOW_MINUTES})",
+    )
+    parser.add_argument(
+        "--medium", type=int, default=DEFAULT_MEDIUM,
+        help=f"total failures for MEDIUM risk (default: {DEFAULT_MEDIUM})",
+    )
+    parser.add_argument(
+        "--high", type=int, default=DEFAULT_HIGH,
+        help=f"total failures for HIGH risk (default: {DEFAULT_HIGH})",
+    )
+    parser.add_argument(
+        "--year", type=int, default=None,
+        help="year to assume for syslog timestamps, which have none (default: current year)",
+    )
+    parser.add_argument(
+        "--output", default="security_report.txt", help="text report path (default: security_report.txt)"
+    )
+    parser.add_argument("--no-file", action="store_true", help="print the report only, do not write a file")
+    parser.add_argument("--json", metavar="PATH", help="also write the results as JSON")
+    return parser
 
 
-    with open("security_report.txt", "w") as report:
-        report.write("SECURITY REPORT\n")
-        report.write("====================\n")
-        report.write(f"Most Failed IP: {most_failed_ip}\n")
-        report.write(f"Failed Attempts: {failed_ips[most_failed_ip]}\n")
-        report.write(f"Total Failed Attempts: {failed_count}\n")
-        report.write(f"Brute-Force Alerts: {bruteforce_alerts}\n")
-        report.write("\nSuspicious IPs:\n")
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    args = build_parser().parse_args(argv)
+    path = Path(args.logfile)
 
-        for ip, count in bruteforce_ips.items():
-            report.write(f"{ip} -> {count} brute-force alerts\n")
+    try:
+        with path.open(encoding="utf-8", errors="replace") as handle:
+            result = analyze(
+                handle,
+                year=args.year,
+                threshold=args.threshold,
+                window_minutes=args.window,
+                medium_threshold=args.medium,
+                high_threshold=args.high,
+            )
+    except FileNotFoundError:
+        print(f"Error: log file not found: {path}", file=sys.stderr)
+        return 1
+    except OSError as exc:
+        print(f"Error: cannot read {path}: {exc}", file=sys.stderr)
+        return 1
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
 
-        report.write("\nIP ANALYSIS:\n")
+    report = render_text(result)
+    print(report)
 
-        for ip, count in failed_ips.items():
-            ip_obj = ipaddress.ip_address(ip)
-
-            if ip_obj.is_private:
-                status = "PRIVATE"
-            else:
-                status = "PUBLIC"
-
-            if count >= 5:
-                risk = "HIGH"
-            elif count >= 3:
-                risk = "MEDIUM"
-            else:
-                risk = "LOW"
-
-            if risk == "HIGH":
-                decision = "BLOCK"
-            elif risk == "MEDIUM":
-                decision = "INVESTIGATE"
-            else:
-                decision = "ALLOW"
-
-            report.write(f"\n{ip}\n")
-            report.write(f"    Status: {status}\n")
-            report.write(f"    Failed Attempts: {count}\n")
-            report.write(f"    Risk: {risk}\n")
-            report.write(f"    Decision: {decision}\n")
-        report.write("\nBLOCKED IPS:\n")
-
-        if blocked_ips:
-            for ip in blocked_ips:
-                report.write(f"{ip} -> BLOCKED\n")
-        else:
-            report.write("No IPs blocked\n")
-
-        
-        
-
-        
-          
+    if not args.no_file:
+        Path(args.output).write_text(report, encoding="utf-8")
+        print(f"Report saved to {args.output}")
+    if args.json:
+        Path(args.json).write_text(json.dumps(to_dict(result), indent=2), encoding="utf-8")
+        print(f"JSON saved to {args.json}")
+    return 0
 
 
-
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,52 @@
+SECURITY LOG ANALYSIS REPORT
+============================
+Generated       : 2026-11-03 08:00:42
+Lines read      : 27
+Failed logins   : 16
+Unparsed lines  : 0
+Time range      : 2026-11-02 07:05:00 -> 2026-11-02 09:10:00
+Detection rule  : >= 5 failed logins from one IP within 5 min (T1110 - Brute Force)
+Risk rules      : HIGH = brute-force burst or >= 10 failures; MEDIUM = >= 3 failures; otherwise LOW
+
+SUMMARY
+-------
+Most active IP        : 203.0.113.45 (12 failures)
+Brute-force IPs       : 1
+Recommended to block  : 1
+Top targeted usernames: deploy (4), root (4), admin (3), oracle (1), test (1)
+
+IP ANALYSIS
+-----------
+203.0.113.45
+    Scope           : PUBLIC
+    Failed attempts : 12
+    First / last    : 2026-11-02 07:41:09 -> 2026-11-02 07:42:59
+    Peak in window  : 12 within 5 min
+    Brute-force     : YES - 1 burst(s), first at 2026-11-02 07:41:49 [T1110 - Brute Force]
+    Usernames tried : root (4), admin (3), oracle (1), test (1), ubuntu (1)
+    Risk            : HIGH
+    Decision        : BLOCK
+
+198.51.100.23
+    Scope           : PUBLIC
+    Failed attempts : 3
+    First / last    : 2026-11-02 07:05:00 -> 2026-11-02 09:10:00
+    Peak in window  : 1 within 5 min
+    Brute-force     : no
+    Usernames tried : deploy (3)
+    Risk            : MEDIUM
+    Decision        : INVESTIGATE
+
+192.0.2.14
+    Scope           : PUBLIC
+    Failed attempts : 1
+    First / last    : 2026-11-02 08:20:44 -> 2026-11-02 08:20:44
+    Peak in window  : 1 within 5 min
+    Brute-force     : no
+    Usernames tried : deploy (1)
+    Risk            : LOW
+    Decision        : ALLOW
+
+BLOCK LIST
+----------
+203.0.113.45 -> BLOCK

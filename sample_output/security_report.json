@@ -1,0 +1,92 @@
+{
+  "summary": {
+    "lines_read": 25,
+    "failed_logins": 20,
+    "unparsed_lines": 1,
+    "first_event": "2026-11-02T08:00:00",
+    "last_event": "2026-11-02T11:30:00",
+    "brute_force_ips": [
+      "203.0.113.45"
+    ],
+    "block_list": [
+      "203.0.113.45"
+    ],
+    "top_usernames": {
+      "admin": 9,
+      "alice": 3,
+      "root": 3,
+      "dave": 2,
+      "test": 1,
+      "oracle": 1,
+      "bob": 1
+    }
+  },
+  "rules": {
+    "brute_force": ">= 5 failures within 5 minutes",
+    "mitre_attack": "T1110 - Brute Force",
+    "medium_threshold": 3,
+    "high_threshold": 10
+  },
+  "ips": [
+    {
+      "ip": "203.0.113.45",
+      "scope": "PUBLIC",
+      "failed_attempts": 8,
+      "first_seen": "2026-11-02T09:02:10",
+      "last_seen": "2026-11-02T09:04:44",
+      "peak_in_window": 8,
+      "brute_force_bursts": 1,
+      "usernames": {
+        "admin": 3,
+        "root": 3,
+        "test": 1,
+        "oracle": 1
+      },
+      "risk": "HIGH",
+      "decision": "BLOCK"
+    },
+    {
+      "ip": "203.0.113.9",
+      "scope": "PUBLIC",
+      "failed_attempts": 6,
+      "first_seen": "2026-11-02T08:10:00",
+      "last_seen": "2026-11-02T09:50:00",
+      "peak_in_window": 1,
+      "brute_force_bursts": 0,
+      "usernames": {
+        "admin": 6
+      },
+      "risk": "MEDIUM",
+      "decision": "INVESTIGATE"
+    },
+    {
+      "ip": "192.168.1.20",
+      "scope": "PRIVATE",
+      "failed_attempts": 4,
+      "first_seen": "2026-11-02T08:00:00",
+      "last_seen": "2026-11-02T09:05:00",
+      "peak_in_window": 1,
+      "brute_force_bursts": 0,
+      "usernames": {
+        "alice": 3,
+        "bob": 1
+      },
+      "risk": "MEDIUM",
+      "decision": "INVESTIGATE"
+    },
+    {
+      "ip": "198.51.100.77",
+      "scope": "PUBLIC",
+      "failed_attempts": 2,
+      "first_seen": "2026-11-02T09:10:00",
+      "last_seen": "2026-11-02T11:30:00",
+      "peak_in_window": 1,
+      "brute_force_bursts": 0,
+      "usernames": {
+        "dave": 2
+      },
+      "risk": "LOW",
+      "decision": "ALLOW"
+    }
+  ]
+}
